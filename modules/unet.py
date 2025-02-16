@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class UNet(nn.Module):
+class SimpleUnet(nn.Module):
     def __init__(self, input_channel=1, output_channel=2, init_dim=64):
-        super(UNet, self).__init__()
+        super(SimpleUnet, self).__init__()
 
         # エンコーダ（ダウンサンプリング）
         self.enc1 = self.double_conv(input_channel, init_dim)
@@ -63,11 +63,13 @@ class UNet(nn.Module):
         return out
 
     def double_conv(self, in_channels, out_channels):
-        """ 3x3 Conv → ReLU → 3x3 Conv → ReLU """
+        """ 3x3 Conv → BatchNorm → ReLU → 3x3 Conv → BatchNorm → ReLU """
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),  # バッチ正規化
             nn.LeakyReLU(0.2, True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),  # バッチ正規化
             nn.LeakyReLU(0.2, True)
         )
 
@@ -81,10 +83,11 @@ class UNet(nn.Module):
         bypass = F.interpolate(bypass, size=(H, W), mode='bilinear', align_corners=True)
         return torch.cat([upsampled, bypass], dim=1)
 
-# モデルの作成例
-model = UNet(input_channel=2, output_channel=2)
-#print(model)
+if __name__=="__main__":
+    # モデルの作成例
+    model = SimpleUnet(input_channel=2, output_channel=2)
+    #print(model)
 
-input = torch.zeros(10, 2, 512, 128)
+    input = torch.zeros(10, 2, 512, 128)
 
-print(model(input).shape)
+    print(model(input).shape)
